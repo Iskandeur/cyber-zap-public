@@ -141,7 +141,7 @@
                         },
                         {
                             "name": "=text",
-                            "value": "=\ud83d\udea8 ALERTE CYBERZAP\n\n{{ $json.output.title_fr }}\n\n\ud83d\udcdd R\u00e9sum\u00e9 D\u00e9taill\u00e9\n\n{{ $json.output.summary_fr }}\n\n{{ $json.output.action ? \"\ud83d\udee1\ufe0f Mesure d'Action Requise\\n\\nAction Recommand\u00e9e : \" + $json.output.action : \"\" }}\n\n{{ (()=>{ \n  try { return \"\ud83d\udd17 \" + $node[\"Get the link and pass the salt\"].json.link; } \n  catch(e) { \n    try { return \"\ud83d\udd17 \" + $node[\"Get the link and pass the salt1\"].json.link; } \n    catch(e) { return \"\"; } \n  } \n})() }}"
+                            "value": "=\ud83d\udea8 ALERTE CYBERZAP\n\n{{ $json.output.title_fr }}\n\n\ud83d\udcdd R\u00e9sum\u00e9 D\u00e9taill\u00e9\n\n{{ $json.output.summary_fr }}\n\n{{ $json.output.action ? \"\ud83d\udee1\ufe0f Mesure d'Action Requise\\n\\nAction Recommand\u00e9e : \" + $json.output.action : \"\" }}\n\n{{ (()=>{ \n  try { return \"\ud83d\udd17 \" + $node[\"Extract Link\"].json.link; } \n  catch(e) { \n    try { return \"\ud83d\udd17 \" + $node[\"Extract Link Backup\"].json.link; } \n    catch(e) { return \"\"; } \n  } \n})() }}"
                         }
                     ]
                 },
@@ -723,7 +723,7 @@
                         },
                         {
                             "name": "Authorization",
-                            "value": "Bearer jina_YOUR_JINA_TOKEN"
+                            "value": "Bearer YOUR_JINA_API_KEY"
                         },
                         {
                             "name": "Accept",
