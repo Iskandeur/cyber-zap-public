@@ -1,0 +1,2965 @@
+{
+    "nodes": [
+        {
+            "parameters": {
+                "url": "={{ $json.link }}",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "User-Agent",
+                            "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.3,
+            "position": [
+                3408,
+                -832
+            ],
+            "id": "bc14044e-83fe-43ed-a890-e65361baeb82",
+            "name": "Extract Article Content"
+        },
+        {
+            "parameters": {
+                "html": "={{ $json.data }}",
+                "options": {
+                    "ignore": "script,style,nav,footer,frame"
+                }
+            },
+            "type": "n8n-nodes-base.markdown",
+            "typeVersion": 1,
+            "position": [
+                3696,
+                -832
+            ],
+            "id": "c6e1ce0c-a980-4f74-9875-f050f90f6473",
+            "name": "HTML to Markdown"
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "={{ $json.data }}",
+                "hasOutputParser": true,
+                "messages": {
+                    "messageValues": [
+                        {
+                            "message": "Tu es \"CyberZap\", une IA de Cyber Threat Intelligence. Ta mission est le triage critique.\n\n\ud83c\udfaf P\u00c9RIM\u00c8TRE DE SURVEILLANCE (SCOPE) :\nTu ne dois alerter QUE si la cible ou la technologie concerne :\n1. \ud83c\uddeb\ud83c\uddf7 FRANCE : Toutes entreprises fran\u00e7aises (CAC40, ETI) + PME strat\u00e9giques (D\u00e9fense, A\u00e9ro, Sant\u00e9, Sous-traitants critiques).\n2. \ud83c\udf0d G\u00c9ANTS MONDIAUX : Fortune 500, GAFAM, fournisseurs majeurs d'infra (Cisco, SAP, Microsoft...).\n3. \ud83e\uddf1 INFRASTRUCTURE : Failles sur des technos universelles (VPN, Firewall, OS).\n\n\u274c HORS P\u00c9RIM\u00c8TRE (Ignorer / Score 0) :\n- PME locales \u00e9trang\u00e8res sans impact global (ex: \"Dentiste en Iowa\", \"Mairie en Italie\").\n- Business non critique.\n\n---\nANALYSE SELON LES 3 CAS :\n\n\ud83d\udd3b CAS 1 : ALERTE CISA (Source: CISA_KEV_ENTRY)\nPriorit\u00e9 absolue.\n- Score : 10\n- Title_fr : \"\ud83d\udea8 ALERTE CISA : [product] exploit\u00e9\"\n- Summary_fr : \"Faille [cveID] exploit\u00e9e activement. Patch imp\u00e9ratif avant le [dueDate].\"\n- Action : \"PATCH IMM\u00c9DIAT (Obligatoire)\"\n- is_relevant : true\n\n\ud83d\udd3b CAS 2 : RANSOMWARE (Source: Ransomware.live ou revendication)\nApplique le SCOPE strictement en suivant cette cascade de r\u00e8gles logiques (IF/ELSE) :\n\n1. CRIT\u00c8RES D'EXCLUSION (Score = 2, is_relevant = false) :\n   - Si l'entit\u00e9 est \u00c9TRANG\u00c8RE (Hors France) ET qu'elle est une PME/ETI inconnue du grand public.\n   - M\u00eame si le secteur est \"Industrie\", \"Tech\" ou \"Sant\u00e9\", si l'entreprise n'est pas un acteur majeur ou strat\u00e9gique (ex: sous-traitant mineur comme Burnex, prestataire IT g\u00e9n\u00e9rique comme ESSPL) -> REJETER.\n\n2. CRIT\u00c8RES D'INCLUSION (Si non rejet\u00e9 ci-dessus) :\n\n   A. CIBLES HAUTEMENT STRAT\u00c9GIQUES (Score 9) :\n      - Tout Organisme d'\u00c9tat ou Gouvernemental (ex: Bureau Premier Ministre, Minist\u00e8re, H\u00f4pital public majeur), quel que soit le pays.\n      - Toute entit\u00e9 du secteur D\u00c9FENSE / ARMEMENT (ex: Bachmann RDS), quel que soit le pays.\n      - Op\u00e9rateurs d'Importance Vitale (\u00c9nergie, Eau, Transports critiques, Nucl\u00e9aire).\n\n   B. CIBLES FRAN\u00c7AISES (Score 9) :\n      - Administration publique fran\u00e7aise (tout niveau).\n      - Grandes Entreprises (CAC40, SBF120, marques connues).\n      - PME/Startups UNIQUEMENT si secteur sensible : D\u00e9fense, Cybers\u00e9curit\u00e9, A\u00e9rospatial, Deeptech, Recherche critique.\n      - (Note: Une PME fran\u00e7aise de BTP, Retail ou Service local non critique doit \u00eatre trait\u00e9e avec un score inf\u00e9rieur ou exclue selon ta tol\u00e9rance au bruit).\n\n   C. GRANDS GROUPES INTERNATIONAUX (Score 7) :\n      - Multinationales reconnues mondialement (ex: Airbus, Boeing, Sony, etc.).\n\nFORMAT DE SORTIE SI PERTINENT (is_relevant = true) :\n- Title_fr : \"\ud83c\udff4\u200d\u2620\ufe0f [Group] revendique [Victim]\"\n- Summary_fr : \"Donn\u00e9es publi\u00e9es pour [Victim] ([Secteur] - [Pays]).\"\n- Action : \"\"\n\n\ud83d\udd3b CAS 3 : ARTICLE STANDARD\n- Si PUB/Sponsoris\u00e9 : Score = 0, is_relevant = false.\n- Si Faille Critique (0-day/RCE) sur Techno du SCOPE : Title = \"\ud83d\udd25 [Vuln]\", Score = 8, Action = \"Alerter SOC/Patch\".\n- Si News G\u00e9n\u00e9raliste/Politique : Score = 5, Action = \"\".\n\n---\nR\u00c8GLES DE FORMATAGE WHATSAPP (CRITIQUE) :\n1. PAS DE MARKDOWN CLASSIQUE : Jamais de [Lien](URL).\n2. GRAS : Utilise *une seule \u00e9toile* autour du texte (*Exemple*).\n3. LIENS : Ne les mets JAMAIS dans le r\u00e9sum\u00e9. Ils seront ajout\u00e9s automatiquement apr\u00e8s.\n4. PAS DE LISTES \u00c0 PUCES COMPLEXES : Utilise juste des tirets ou \u00e9mojis.\n\nSORTIE : JSON uniquement."
+                        }
+                    ]
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.chainLlm",
+            "typeVersion": 1.4,
+            "position": [
+                4160,
+                -432
+            ],
+            "id": "4dae5868-d0a4-4a29-9b6f-180ed79e2840",
+            "name": "Cyber Threat Analyzer",
+            "retryOnFail": true,
+            "waitBetweenTries": 5000,
+            "maxTries": 5
+        },
+        {
+            "parameters": {
+                "schemaType": "manual",
+                "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"is_ad\": {\n      \"type\": \"boolean\",\n      \"description\": \"True if the content is sponsored or an advertisement\"\n    },\n    \"is_relevant\": {\n      \"type\": \"boolean\",\n      \"description\": \"True if score >= 6\"\n    },\n    \"score\": {\n      \"type\": \"number\",\n      \"description\": \"Criticality score 0-10\"\n    },\n    \"title_fr\": {\n      \"type\": \"string\",\n      \"description\": \"Titre traduit en fran\u00e7ais, accrocheur, avec un emoji au d\u00e9but\"\n    },\n    \"summary_fr\": {\n      \"type\": \"string\",\n      \"description\": \"R\u00e9sum\u00e9 technique en fran\u00e7ais en 3 bullet points max\"\n    },\n    \"action\": {\n      \"type\": \"string\",\n      \"description\": \"Action recommand\u00e9e (ex: Patcher, Surveiller, Ignorer)\"\n    }\n  },\n  \"required\": [\n    \"is_ad\",\n    \"is_relevant\",\n    \"score\",\n    \"title_fr\",\n    \"summary_fr\",\n    \"action\"\n  ]\n}",
+                "autoFix": true
+            },
+            "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+            "typeVersion": 1.2,
+            "position": [
+                4208,
+                -560
+            ],
+            "id": "e6b5166e-47ee-4685-ad99-ef829aa61ab2",
+            "name": "Threat JSON Parser"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{ $json.output.is_relevant }}",
+                            "value2": true
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                4608,
+                -432
+            ],
+            "id": "011ec74a-951d-4eef-9503-42e6f0c59c29",
+            "name": "Is Critical Threat?"
+        },
+        {
+            "parameters": {
+                "chatId": "YOUR_TELEGRAM_CHAT_ID",
+                "text": "=\ud83d\udea8 *ALERTE CYBERZAP*\n\n{{ $json.output.title_fr }}\n(Score: {{ $json.output.score }}/10)\n\n\ud83d\udcdd *R\u00e9sum\u00e9 :*\n{{ $json.output.summary_fr }}\n\n\ud83d\udee1\ufe0f *Action :* {{ $json.output.action }}\n\n\ud83d\udd17 [Lire l'original]({{ $('Extract Article Content').params.url }})",
+                "additionalFields": {}
+            },
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
+            "position": [
+                2528,
+                2864
+            ],
+            "id": "6ee210f2-ff53-4a39-a1a2-c081b75fcec0",
+            "name": "Send Telegram",
+            "webhookId": "YOUR_WEBHOOK_ID"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://waha:3000/api/sendText",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "X-Api-Key",
+                            "value": "YOUR_WAHA_API_KEY"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "session",
+                            "value": "default"
+                        },
+                        {
+                            "name": "chatId",
+                            "value": "YOUR_WHATSAPP_CHAT_ID"
+                        },
+                        {
+                            "name": "=text",
+                            "value": "=\ud83d\udea8 ALERTE CYBERZAP\n\n{{ $json.output.title_fr }}\n\n\ud83d\udcdd R\u00e9sum\u00e9 D\u00e9taill\u00e9\n\n{{ $json.output.summary_fr }}\n\n{{ $json.output.action ? \"\ud83d\udee1\ufe0f Mesure d'Action Requise\\n\\nAction Recommand\u00e9e : \" + $json.output.action : \"\" }}\n\n{{ (()=>{ \n  try { return \"\ud83d\udd17 \" + $node[\"Get the link and pass the salt\"].json.link; } \n  catch(e) { \n    try { return \"\ud83d\udd17 \" + $node[\"Get the link and pass the salt1\"].json.link; } \n    catch(e) { return \"\"; } \n  } \n})() }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.3,
+            "position": [
+                4832,
+                -432
+            ],
+            "id": "e9ec13f8-f026-447b-855f-1a174c3e1bc0",
+            "name": "Publish to Channel (Waha)"
+        },
+        {
+            "parameters": {
+                "url": "http://waha:3000/api/default/channels",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "X-Api-Key",
+                            "value": "YOUR_WAHA_API_KEY"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {}
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.3,
+            "position": [
+                2528,
+                3088
+            ],
+            "id": "1ad6c267-44c3-4165-aceb-570b02ada478",
+            "name": "Get Channels List"
+        },
+        {
+            "parameters": {
+                "url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.3,
+            "position": [
+                2688,
+                -432
+            ],
+            "id": "6723c277-5060-4dfa-a6e0-89ce91fd7005",
+            "name": "Fetch CISA JSON",
+            "retryOnFail": true
+        },
+        {
+            "parameters": {
+                "fieldToSplitOut": "vulnerabilities",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.itemLists",
+            "typeVersion": 3,
+            "position": [
+                2912,
+                -432
+            ],
+            "id": "6bcd86d9-c4a3-4f8e-bb4d-2f3b7406ddb5",
+            "name": "Split Vulnerabilities"
+        },
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutesInterval": 15
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.2,
+            "position": [
+                2464,
+                -432
+            ],
+            "id": "7072f65f-377f-4f52-9081-5c1e380ab29a",
+            "name": "Every 15 minutes"
+        },
+        {
+            "parameters": {
+                "operation": "removeItemsSeenInPreviousExecutions",
+                "dedupeValue": "={{ $json.cveID }}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.removeDuplicates",
+            "typeVersion": 2,
+            "position": [
+                3360,
+                -432
+            ],
+            "id": "594280e1-6afd-4d49-822d-4adeec70952e",
+            "name": "Remove Duplicates"
+        },
+        {
+            "parameters": {
+                "pollTimes": {
+                    "item": [
+                        {
+                            "mode": "everyX",
+                            "value": 15,
+                            "unit": "minutes"
+                        }
+                    ]
+                },
+                "feedUrl": "https://www.cert.ssi.gouv.fr/avis/feed/"
+            },
+            "type": "n8n-nodes-base.rssFeedReadTrigger",
+            "typeVersion": 1,
+            "position": [
+                2960,
+                -1024
+            ],
+            "id": "f6ef4340-bb50-4b2e-bd80-09c14a7a9758",
+            "name": "RSS CERT-FR"
+        },
+        {
+            "parameters": {
+                "pollTimes": {
+                    "item": [
+                        {
+                            "mode": "everyX",
+                            "value": 15,
+                            "unit": "minutes"
+                        }
+                    ]
+                },
+                "feedUrl": "https://www.zerodayinitiative.com/rss/published/"
+            },
+            "type": "n8n-nodes-base.rssFeedReadTrigger",
+            "typeVersion": 1,
+            "position": [
+                2960,
+                -832
+            ],
+            "id": "4fe35fb9-5715-44f0-8d5c-b7faa405f1b3",
+            "name": "RSS Zero-Day Initiative",
+            "retryOnFail": true,
+            "waitBetweenTries": 5000
+        },
+        {
+            "parameters": {
+                "pollTimes": {
+                    "item": [
+                        {
+                            "mode": "everyX",
+                            "value": 15,
+                            "unit": "minutes"
+                        }
+                    ]
+                },
+                "feedUrl": "https://www.ransomware.live/rss.xml"
+            },
+            "type": "n8n-nodes-base.rssFeedReadTrigger",
+            "typeVersion": 1,
+            "position": [
+                2960,
+                -640
+            ],
+            "id": "4d505f90-dd84-472d-9bad-cc1cb741c7d8",
+            "name": "RSS Ransomware-Live"
+        },
+        {
+            "parameters": {
+                "jsCode": "// R\u00e9cup\u00e9ration des dates (Aujourd'hui et Hier) au format YYYY-MM-DD\nconst today = new Date();\nconst yesterday = new Date(today);\nyesterday.setDate(yesterday.getDate() - 1);\n\n// Fonction pour formater en YYYY-MM-DD\nconst formatDate = (date) => date.toISOString().split('T')[0];\n\nconst targetDates = [formatDate(today), formatDate(yesterday)];\n\n// Filtrage des items\nconst newVulns = items.filter(item => {\n  const dateAdded = item.json.dateAdded; // Format CISA est YYYY-MM-DD\n  return targetDates.includes(dateAdded);\n});\n\nreturn newVulns;"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                3136,
+                -432
+            ],
+            "id": "55f74ef6-a743-4489-b8fa-c0f5b104463d",
+            "name": "Filter Results Time Wise"
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "// Transforme l'objet technique CISA en un texte lisible pour l'IA\nconst item = $input.item.json.data;\n\nreturn {\n  json: {\n    // On cr\u00e9e un champ 'data' comme pour les autres branches RSS\n    data: `SOURCE: CISA_KEV_ENTRY\n    cveID: ${item.cveID}\n    vendorProject: ${item.vendorProject}\n    product: ${item.product}\n    vulnerabilityName: ${item.vulnerabilityName}\n    dateAdded: ${item.dateAdded}\n    shortDescription: ${item.shortDescription}\n    requiredAction: ${item.requiredAction}`,\n  },\n};\n"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                3872,
+                -432
+            ],
+            "id": "2b8bd569-4a66-47fb-b885-97d440c56836",
+            "name": "Reformat Data"
+        },
+        {
+            "parameters": {
+                "jsCode": "\nreturn {\n  json: {\n    data: items[0].json,\n    link: items[0].json.link\n  },\n};\n"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                3184,
+                -832
+            ],
+            "id": "2bc33398-1376-450b-96dc-fa9fc7f81813",
+            "name": "Extract Link"
+        },
+        {
+            "parameters": {
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_GOOGLE_SHEET_ID",
+                    "mode": "list",
+                    "cachedResultName": "CyberZap Database",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": 1495765821,
+                    "mode": "list",
+                    "cachedResultName": "Sources",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=1495765821"
+                },
+                "filtersUI": {
+                    "values": [
+                        {
+                            "lookupColumn": "Enabled",
+                            "lookupValue": "true"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.7,
+            "position": [
+                2416,
+                816
+            ],
+            "id": "6e7f01d7-5eab-44eb-86a7-539e13d7e47d",
+            "name": "Get Sources",
+            "retryOnFail": true,
+            "executeOnce": true,
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "type": "n8n-nodes-base.splitInBatches",
+            "typeVersion": 3,
+            "position": [
+                2640,
+                816
+            ],
+            "id": "cc4e4c87-1783-4559-91bb-4726b07ea758",
+            "name": "Loop over Sources"
+        },
+        {
+            "parameters": {
+                "jsCode": "// Configuration\nconst hoursAgo = 24;\nconst maxItemsPerFeed = 10; // <-- LIMITATION DU VOLUME\n\nconst cutOff = new Date(new Date().getTime() - (hoursAgo * 60 * 60 * 1000));\n\n// 1. Filtre Temporel\nlet recentItems = items.filter(item => {\n  const pubDate = new Date(item.json.isoDate || item.json.pubDate);\n  return pubDate > cutOff;\n});\n\n// 2. Limite de volume (On garde les plus r\u00e9cents car RSS est souvent tri\u00e9)\nif (recentItems.length > maxItemsPerFeed) {\n  recentItems = recentItems.slice(0, maxItemsPerFeed);\n}\n\nreturn recentItems;"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                3776,
+                672
+            ],
+            "id": "182c552f-56b3-4b92-beb8-4947ada83a73",
+            "name": "Filter Last 24h",
+            "alwaysOutputData": true
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "={{ $json.data.toJsonString().substring(0, 30000); }}",
+                "hasOutputParser": true,
+                "messages": {
+                    "messageValues": [
+                        {
+                            "message": "=Tu es l'analyste senior de CyberZap. \nTa mission est de s\u00e9lectionner la \"Cr\u00e8me de la Cr\u00e8me\" pour un Daily Digest.\n\nINPUT DATA :\nURL : {{ $json.data.url }}\nCONTENT : {{ $json.data.content }} (Peut contenir un message d'erreur Jina/403)\n\n\u26a0\ufe0f R\u00c8GLE DE S\u00c9CURIT\u00c9 :\nSi le CONTENT contient \"Access Denied\", \"403 Forbidden\", \"Cloudflare\", ou est vide :\n-> ARR\u00caTE TOUT. Renvoie : {\"is_relevant\": false, \"score\": 0, \"title_fr\": \"Erreur\", \"summary_fr\": \"Vide\"}\n\nSINON, proc\u00e8de \u00e0 l'analyse :\n\nSOURCE DE L'ARTICLE : {{ $('Loop over Sources').item.json.Name }}\n\nCRIT\u00c8RES DE S\u00c9LECTION DRASTIQUES :\n1. REJETTE (Score < 5) :\n   - Les articles de news g\u00e9n\u00e9ralistes d\u00e9j\u00e0 connus.\n   - Les rumeurs non confirm\u00e9es, les pubs, les articles vides.\n\n2. VALORISE (Score > 7) :\n   - Les analyses techniques (TTPs, IOCs).\n   - Les infos g\u00e9opolitiques ou hacks majeurs (ex: Minist\u00e8re, Infrastructure critique).\n   - Les articles provenant de sources rares.\n\nINSTRUCTIONS DE R\u00c9SUM\u00c9 :\n- Synth\u00e9tise l'info technique ou l'impact business.\n- Pas de blabla.\n\nFORMAT DE SORTIE : JSON"
+                        }
+                    ]
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.chainLlm",
+            "typeVersion": 1.4,
+            "position": [
+                5616,
+                480
+            ],
+            "id": "ce989966-0bc3-4d85-9c21-3d9f16f8d9b2",
+            "name": "AI Filter & Summarizer",
+            "onError": "continueErrorOutput"
+        },
+        {
+            "parameters": {
+                "schemaType": "manual",
+                "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"title_fr\": {\n      \"type\": \"string\",\n      \"description\": \"Titre en fran\u00e7ais avec un emoji contextuel\"\n    },\n    \"summary_fr\": {\n      \"type\": \"string\",\n      \"description\": \"Synth\u00e8se dense en 3 phrases maximum\"\n    },\n    \"link\": {\n      \"type\": \"string\",\n      \"description\": \"Lien source, donn\u00e9 au d\u00e9but du prompt.\"\n    },\n    \"score\": {\n      \"type\": \"number\",\n      \"description\": \"Note de pertinence de 0 \u00e0 10\"\n    },\n    \"is_relevant\": {\n      \"type\": \"boolean\",\n      \"description\": \"True si score >= 6\"\n    }\n  },\n  \"required\": [\n    \"title_fr\",\n    \"summary_fr\",\n    \"link\",\n    \"score\",\n    \"is_relevant\"\n  ]\n}",
+                "autoFix": true
+            },
+            "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+            "typeVersion": 1.3,
+            "position": [
+                5600,
+                704
+            ],
+            "id": "9efe15f8-1126-4c8a-a334-9cc7d36b2f04",
+            "name": "JSON Parser"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{ $json.output.is_relevant }}",
+                            "value2": true
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                5968,
+                480
+            ],
+            "id": "8220ece9-8273-4fb5-9525-104d3c4f18ee",
+            "name": "Is Relevant?"
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_GOOGLE_SHEET_ID",
+                    "mode": "list",
+                    "cachedResultName": "CyberZap Database",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "gid=0",
+                    "mode": "list",
+                    "cachedResultName": "Slow Lane",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "Title": "={{ $json.output.title_fr }}",
+                        "Summary": "={{ $json.output.summary_fr }}",
+                        "Score": "={{ $json.output.score }}",
+                        "Link": "={{ $json.output.link }}",
+                        "Status": "Pending",
+                        "Source": "={{ $('Loop over Sources').all().first()['json']['Name'] }}",
+                        "Date": "={{ $now }}"
+                    },
+                    "matchingColumns": [],
+                    "schema": [
+                        {
+                            "id": "Date",
+                            "displayName": "Date",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Source",
+                            "displayName": "Source",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Title",
+                            "displayName": "Title",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Summary",
+                            "displayName": "Summary",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Link",
+                            "displayName": "Link",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Score",
+                            "displayName": "Score",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Context",
+                            "displayName": "Context",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "Status",
+                            "displayName": "Status",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {
+                    "useAppend": true
+                }
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.7,
+            "position": [
+                6192,
+                416
+            ],
+            "id": "20955f56-5cad-48f1-9a14-9670c78c32b1",
+            "name": "Save to DB",
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {},
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                6416,
+                816
+            ],
+            "id": "c363c974-e8cb-4e58-9aff-1e3313145248",
+            "name": "End of Loop"
+        },
+        {
+            "parameters": {
+                "url": "={{ $json.URL }}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.rssFeedRead",
+            "typeVersion": 1.2,
+            "position": [
+                2864,
+                752
+            ],
+            "id": "4181cc8d-acbb-4793-b593-32a9e5d49675",
+            "name": "RSS Read",
+            "retryOnFail": true,
+            "alwaysOutputData": true,
+            "onError": "continueErrorOutput"
+        },
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "hours",
+                            "hoursInterval": 6
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.3,
+            "position": [
+                1968,
+                816
+            ],
+            "id": "5257844b-819a-4689-932a-214d045b19d5",
+            "name": "Harvester Trigger"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "e9103a31-880c-4eed-8bdd-52ea8483682e",
+                            "leftValue": "={{ $json.link }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "string",
+                                "operation": "exists",
+                                "singleValue": true
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                4064,
+                672
+            ],
+            "id": "b7cf8189-3ec1-4630-9469-267a7a567e78",
+            "name": "If articles exist"
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "const item = $input.item.json;\nlet finalUrl = item.link;\nlet sourceName = $('Loop over Sources').item.json.Name || '';\n\n// --- LOGIQUE REDDIT ROBUSTE ---\nif (item.link && item.link.includes('reddit.com')) {\n  const content = item.content || item.description || '';\n  \n  // On extrait TOUS les liens href=\"...\"\n  const allLinks = [...content.matchAll(/href=\"([^\"]+)\"/g)].map(m => m[1]);\n  \n  // On cherche le premier lien qui n'est pas interne \u00e0 Reddit\n  const externalLink = allLinks.find(url => \n    !url.includes('reddit.com') && \n    !url.startsWith('/') &&\n    !url.includes('mailto:')\n  );\n\n  if (externalLink) {\n    finalUrl = externalLink; // On envoie Jina sur le vrai blog (ex: coffinsec.com)\n  }\n  // Sinon, on garde le lien Reddit, Jina \u00e9chouera peut-\u00eatre, mais on a tent\u00e9.\n}\n\n// --- LOGIQUE GOOGLE NEWS ---\nif (item.link && item.link.includes('news.google.com')) {\n  // On garde le lien Google pour Jina, il le r\u00e9soudra.\n  // Astuce : Jina renvoie souvent l'URL canonique dans les m\u00e9tadonn\u00e9es de sa r\u00e9ponse JSON.\n}\n\nreturn {\n  json: {\n    ...item,\n    clean_url: finalUrl,\n    source_name: sourceName\n  }\n};"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                4560,
+                608
+            ],
+            "id": "1f30dc2e-ef44-4108-b984-e4f3a548cc62",
+            "name": "Normalize URL"
+        },
+        {
+            "parameters": {
+                "url": "=https://r.jina.ai/{{ $json.clean_url }}",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "X-Target-Selector",
+                            "value": "body"
+                        },
+                        {
+                            "name": "X-Return-Format",
+                            "value": "json"
+                        },
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer jina_YOUR_JINA_TOKEN"
+                        },
+                        {
+                            "name": "Accept",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "options": {
+                    "redirect": {
+                        "redirect": {}
+                    }
+                }
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.3,
+            "position": [
+                5376,
+                704
+            ],
+            "id": "2ad6c865-4b5b-40c4-93a0-6c406dafcd68",
+            "name": "Jina AI Scraper",
+            "retryOnFail": true,
+            "waitBetweenTries": 2000,
+            "maxTries": 3,
+            "onError": "continueErrorOutput"
+        },
+        {
+            "parameters": {
+                "operation": "removeItemsSeenInPreviousExecutions",
+                "dedupeValue": "={{ $json.link }}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.removeDuplicates",
+            "typeVersion": 2,
+            "position": [
+                3088,
+                752
+            ],
+            "id": "c7671fa3-6ae2-4c16-a36f-62aa4fe7ef0e",
+            "name": "Remove Duplicates Articles already fetched",
+            "alwaysOutputData": true
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "e9103a31-880c-4eed-8bdd-52ea8483682e",
+                            "leftValue": "={{ $json.link }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "string",
+                                "operation": "exists",
+                                "singleValue": true
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                3376,
+                752
+            ],
+            "id": "ba49b426-7334-4438-a2de-ce80c1a7677b",
+            "name": "If articles exist (Backup)"
+        },
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "triggerAtHour": 8
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.2,
+            "position": [
+                3088,
+                1360
+            ],
+            "id": "6bb578e4-7f84-4075-ae31-faae1a4637f4",
+            "name": "Every Morning at 8am"
+        },
+        {
+            "parameters": {
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_GOOGLE_SHEET_ID",
+                    "mode": "list",
+                    "cachedResultName": "CyberZap Database",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "gid=0",
+                    "mode": "list",
+                    "cachedResultName": "Slow Lane",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+                },
+                "filtersUI": {
+                    "values": [
+                        {
+                            "lookupColumn": "Status",
+                            "lookupValue": "Pending"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.7,
+            "position": [
+                3312,
+                1360
+            ],
+            "id": "f7ea31c8-3b23-4563-8e50-c608400de6ef",
+            "name": "Read Pending Articles",
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $json.Summary }}",
+                            "operation": "isNotEmpty"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                3536,
+                1360
+            ],
+            "id": "b96b9d53-f7ee-4fd5-9634-045fe51ad550",
+            "name": "Has Content?"
+        },
+        {
+            "parameters": {
+                "jsCode": "// Initialisation de la variable context \u00e0 l'ext\u00e9rieur du bloc IF\nlet context = \"\";\n\nconst newArticles = $items(\"Has Content?\"); \nconst historyItems = $items(\"Filter History\");\n\n// V\u00e9rification robuste : on regarde si le premier \u00e9l\u00e9ment poss\u00e8de des cl\u00e9s\nconst hasHistory = historyItems.length > 0 && Object.keys(historyItems[0].json).length > 0;\n\nif (hasHistory) {\n  context += \"--- M\u00c9MOIRE \u00c9DITORIALE (Ce qu'on a d\u00e9j\u00e0 dit cette semaine) ---\\n\";\n\n  historyItems.forEach(item => {\n    const h = item.json;\n    // On s'assure que Content existe avant de faire un substring\n    const contentSnippet = h.Content ? h.Content.substring(0, 200) : \"Pas de contenu\";\n    context += `[${h.Timestamp || 'Date inconnue'}] ${contentSnippet}...\\n`; \n  });\n} else {\n  context += \"--- M\u00c9MOIRE \u00c9DITORIALE ---\\nAucun historique pour le moment.\\n\";\n}\n\ncontext += \"\\n--- ACTUALIT\u00c9S DU JOUR (\u00c0 traiter) ---\\n\";\n\nnewArticles.forEach((item, index) => {\n  const row = item.json;\n  context += `\\n>>> CANDIDAT N\u00b0${index + 1}\\n`;\n  context += `Titre: ${row.Title}\\n`;\n  context += `Source: ${row.Source}\\n`;\n  context += `R\u00e9sum\u00e9: ${row.Summary}\\n`;\n  context += `Lien: ${row.Link}\\n`;\n});\n\nreturn [\n  {\n    json: {\n      digest_context: context,\n      article_count: newArticles.length,\n      // On ajuste le compteur pour refl\u00e9ter la r\u00e9alit\u00e9\n      history_count: hasHistory ? historyItems.length : 0\n    }\n  }\n];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                4208,
+                1360
+            ],
+            "id": "0b415d88-a4eb-4fda-9b4c-e6254a0db905",
+            "name": "Prepare Context"
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "={{ $json.digest_context }}",
+                "messages": {
+                    "messageValues": [
+                        {
+                            "message": "=Tu es le R\u00e9dacteur en Chef de \"CyberZap\".\nTa mission : Produire la \"Matinale CTI\" parfaite pour WhatsApp.\n\nCIBLE\nDes gens \u00e0 de divers niveaux de technicit\u00e9 dans la cybers\u00e9curit\u00e9. Ne donne des conseils que quand c'est un truc cibl\u00e9 (exemple: v\u00e9rifiez vos versions MongoDB.). Comme \u00e7a le RSSI a un truc concret \u00e0 transmettre \u00e0 ses \u00e9quipes. Evite le trop g\u00e9n\u00e9ral comme \"surveillez vos acc\u00e8s VPN\".\n\nCONSIGNES \u00c9DITORIALES :\n1. S\u00c9LECTIONNE : Garde uniquement les 3 \u00e0 5 infos les plus critiques ou int\u00e9ressantes. Ignore le bruit.\n2. SYNTH\u00c9TISE : Ne recopie pas les r\u00e9sum\u00e9s. R\u00e9\u00e9cris-les pour qu'ils coulent bien ensemble.\n3. TON : Professionnel, dense, \"Insider\". Comme un briefing de renseignement.\n\nTu disposes d'une section M\u00c9MOIRE \u00c9DITORIALE. Avant de s\u00e9lectionner une actu du jour :\n\n    V\u00e9rifie si on en a d\u00e9j\u00e0 parl\u00e9 cette semaine.\n\n    Si c'est une REDITE exacte -> Ignore-la.\n\n    Si c'est une MISE \u00c0 JOUR importante (ex: revendication d'une attaque annonc\u00e9e hier) -> Mentionne-le clairement (\"Suite \u00e0 notre alerte d'hier...\").\"\n\nSTRUCTURE DU MESSAGE (Format WhatsApp Strict) :\n\n\u2615 *Le Brief Cyber du [Date du jour, sachant qu'aujourd'hui nous sommes le {{ $now }}]*\n_[Une phrase d'intro unique qui donne la temp\u00e9rature : Calme, Temp\u00eate, ou Focus sur un sujet]_\n\n*1. [Titre Info 1]*\n[Synth\u00e8se en 2 phrases max].\n\ud83d\udd17 Lien\n\n*2. [Titre Info 2]*\n...\n\n\ud83d\udca1 _[Une conclusion ou un insight ou un conseil / recommandation si c'est vraiment pertinent pour le public vis\u00e9.]_\n\nR\u00c8GLES DE FORMATAGE :\n- Gras = *texte* (une seule \u00e9toile)\n- Italique = _texte_\n- Pas de liens masqu\u00e9s [texte](url), affiche l'URL brute pr\u00e9c\u00e9d\u00e9e de \ud83d\udd17.\n- Utilise des \u00e9mojis pertinents mais n'en abuse pas.\n\nOutput final : Uniquement le texte du message."
+                        }
+                    ]
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.chainLlm",
+            "typeVersion": 1.4,
+            "position": [
+                4512,
+                1344
+            ],
+            "id": "3c78a72d-c7a5-4b26-8728-ba0b45d25995",
+            "name": "R\u00e9dacteur en Chef (AI)",
+            "retryOnFail": true
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://waha:3000/api/sendText",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "X-Api-Key",
+                            "value": "YOUR_WAHA_API_KEY"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "session",
+                            "value": "default"
+                        },
+                        {
+                            "name": "chatId",
+                            "value": "YOUR_WHATSAPP_CHAT_ID"
+                        },
+                        {
+                            "name": "text",
+                            "value": "={{ $json.text }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.3,
+            "position": [
+                4896,
+                1360
+            ],
+            "id": "c24e9472-42a0-4b78-b682-4bf30c7fcb58",
+            "name": "Send WhatsApp"
+        },
+        {
+            "parameters": {
+                "jsCode": "// On r\u00e9cup\u00e8re les items originaux pour mettre \u00e0 jour le Sheet\n// Cela permet de marquer comme \"Sent\" tous les articles lus au d\u00e9but\nreturn $('Read Pending Articles').all();"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                5232,
+                1456
+            ],
+            "id": "7e8dfcb2-82b6-4796-8d72-334412e952bf",
+            "name": "Get Original Rows"
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_GOOGLE_SHEET_ID",
+                    "mode": "list",
+                    "cachedResultName": "CyberZap Database",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "gid=0",
+                    "mode": "list",
+                    "cachedResultName": "Slow Lane",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "Status": "Sent",
+                        "row_number": "={{ $json.row_number }}"
+                    },
+                    "matchingColumns": [
+                        "row_number"
+                    ],
+                    "schema": [
+                        {
+                            "id": "Status",
+                            "displayName": "Status",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "row_number",
+                            "displayName": "row_number",
+                            "required": false,
+                            "defaultMatch": true,
+                            "display": true,
+                            "type": "number",
+                            "canBeUsedToMatch": true,
+                            "readOnly": true,
+                            "removed": false
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.7,
+            "position": [
+                5456,
+                1456
+            ],
+            "id": "f2fdd159-e98c-4b75-a65f-571d57b75325",
+            "name": "Mark as Sent",
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {},
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                2912,
+                2400
+            ],
+            "id": "be0349f0-bc66-4609-8770-803f9e0b75b5",
+            "name": "Start Validation"
+        },
+        {
+            "parameters": {
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_GOOGLE_SHEET_ID",
+                    "mode": "list",
+                    "cachedResultName": "CyberZap Database",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": 1495765821,
+                    "mode": "list",
+                    "cachedResultName": "Sources",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=1495765821"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.7,
+            "position": [
+                3136,
+                2400
+            ],
+            "id": "e2aa38b6-8dc9-40e0-b238-004492a184f4",
+            "name": "Read All Sources",
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "type": "n8n-nodes-base.splitInBatches",
+            "typeVersion": 3,
+            "position": [
+                3584,
+                2400
+            ],
+            "id": "b70abc33-d5c3-4970-a68e-897443cd537c",
+            "name": "Loop Sources"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 1
+                    },
+                    "conditions": [
+                        {
+                            "id": "24662f3a-93dc-412c-a7b7-00dde2a2c566",
+                            "leftValue": "={{$json.toJsonString()}}",
+                            "rightValue": "{}",
+                            "operator": {
+                                "type": "string",
+                                "operation": "notEquals"
+                            }
+                        },
+                        {
+                            "id": "8201ac8a-4775-47dc-b45a-4127954982fb",
+                            "leftValue": "={{ $json.error }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "string",
+                                "operation": "notExists",
+                                "singleValue": true
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                4320,
+                2336
+            ],
+            "id": "748ebe29-1bab-4f41-a5a2-2a1844acc9a3",
+            "name": "Is Alive?"
+        },
+        {
+            "parameters": {
+                "jsCode": "// On pr\u00e9pare un \u00e9chantillon pour l'IA\n// On prend les 5 derniers articles pour juger de la qualit\u00e9\nlet sample = \"SOURCE URL: \" + $('Loop Sources').item.json.URL + \"\\n\\n\";\n\n// items contient les articles RSS (s'il y en a)\nconst articles = items.slice(0, 5);\n\nif (articles.length === 0) {\n  return [{json: {empty: true}}];\n}\n\narticles.forEach((item, index) => {\n  sample += `--- ARTICLE ${index+1} ---\\n`;\n  sample += `Title: ${item.json.title}\\n`;\n  sample += `Snippet: ${item.json.contentSnippet || item.json.content}\\n`;\n});\n\nreturn [\n  {\n    json: {\n      sample_text: sample,\n      empty: false\n    }\n  }\n];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                5280,
+                2256
+            ],
+            "id": "9908537a-a535-4598-8313-148b2035a400",
+            "name": "Prepare Sample"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{ $json.empty }}",
+                            "value2": true
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                5504,
+                2256
+            ],
+            "id": "ccc58a8c-7aa3-4c34-aee5-94a52a17910c",
+            "name": "Has Articles?"
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "={{ $json.sample_text }}",
+                "hasOutputParser": true,
+                "messages": {
+                    "messageValues": [
+                        {
+                            "message": "Tu es l'Auditeur Qualit\u00e9 de CyberZap.\nTon r\u00f4le est d'\u00e9valuer la qualit\u00e9 et la fiabilit\u00e9 d'un flux RSS de cybers\u00e9curit\u00e9 \u00e0 partir d'un \u00e9chantillon de ses derniers articles.\n\nANALYSE L'\u00c9CHANTILLON FOURNI CI-DESSOUS.\n\nTA MISSION :\n1. Identifier le NOM du site (s'il n'est pas clair dans l'URL).\n2. Cat\u00e9goriser le TYPE : \"Tech\" (Blog technique, Chercheur), \"Media\" (Presse, News), \"Vendor\" (Blog d'entreprise, Marketing), \"Gouv\" (CERT, Agence), \"Social\" (Reddit, Mastodon).\n3. \u00c9valuer la FIABILIT\u00c9 (Score /10) :\n   - 9-10 : Technique pure, IOCs, Analyses de fond, CERT officiel.\n   - 7-8 : Bonne veille, news fiables.\n   - 4-6 : Trop de marketing, articles courts, clickbait.\n   - 0-3 : Spam, hors-sujet, rumeurs non fond\u00e9es.\n4. Donner une raison courte.\n\nOUTPUT JSON ATTENDU :\n{ \n  \"name\": \"Nom du Site\",\n  \"type\": \"Tech|Media|Vendor|Gouv|Social\",\n  \"reliability_score\": 8,\n  \"reasoning\": \"Articles techniques avec d\u00e9tails, pas de pub.\"\n}"
+                        }
+                    ]
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.chainLlm",
+            "typeVersion": 1.4,
+            "position": [
+                5744,
+                2144
+            ],
+            "id": "313b35e6-47bb-43ce-9c7d-912673812dec",
+            "name": "AI Auditor"
+        },
+        {
+            "parameters": {
+                "schemaType": "manual",
+                "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"name\": {\n      \"type\": \"string\"\n    },\n    \"type\": {\n      \"type\": \"string\",\n      \"enum\": [\"Tech\", \"Media\", \"Vendor\", \"Gouv\", \"Social\", \"Other\"]\n    },\n    \"reliability_score\": {\n      \"type\": \"number\"\n    },\n    \"reasoning\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\"name\", \"type\", \"reliability_score\", \"reasoning\"]\n}",
+                "autoFix": true
+            },
+            "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+            "typeVersion": 1.3,
+            "position": [
+                5728,
+                2368
+            ],
+            "id": "61dbc729-fc2e-489b-b586-f50811e1c92c",
+            "name": "Audit Parser"
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_GOOGLE_SHEET_ID",
+                    "mode": "list",
+                    "cachedResultName": "CyberZap Database",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": 1495765821,
+                    "mode": "list",
+                    "cachedResultName": "Sources",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=1495765821"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "Name": "={{ $json.output.name }}",
+                        "Type": "={{ $json.output.type }}",
+                        "Reliability": "={{ $json.output.reliability_score }}",
+                        "Enabled": "={{ $json.output.reliability_score >= 5 ? \"TRUE\" : \"FALSE\" }}",
+                        "Last_Checked": "={{ $now }}",
+                        "row_number": "={{ $('Loop Sources').all().first().json.row_number}}",
+                        "URL": "={{ $('Loop Sources').all().first().json.URL}}",
+                        "AI_Analysis": "={{ $json.output.reasoning }}"
+                    },
+                    "matchingColumns": [
+                        "row_number"
+                    ],
+                    "schema": [
+                        {
+                            "id": "Name",
+                            "displayName": "Name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "URL",
+                            "displayName": "URL",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "Type",
+                            "displayName": "Type",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Enabled",
+                            "displayName": "Enabled",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Last_Checked",
+                            "displayName": "Last_Checked",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Reliability",
+                            "displayName": "Reliability",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "AI_Analysis",
+                            "displayName": "AI_Analysis",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "row_number",
+                            "displayName": "row_number",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "number",
+                            "canBeUsedToMatch": true,
+                            "readOnly": true,
+                            "removed": false
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false,
+                    "options": {}
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.7,
+            "position": [
+                6096,
+                2144
+            ],
+            "id": "a0f77cbb-8343-4c07-98b4-7e4f4fd3f2bd",
+            "name": "Update (Valid)",
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_GOOGLE_SHEET_ID",
+                    "mode": "list",
+                    "cachedResultName": "CyberZap Database",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": 1495765821,
+                    "mode": "list",
+                    "cachedResultName": "Sources",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=1495765821"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "Enabled": "FALSE",
+                        "Last_Checked": "={{ $now }}",
+                        "row_number": "={{ $('Loop Sources').all().first().json.row_number}}",
+                        "Reliability": "0",
+                        "AI_Analysis": "Vide"
+                    },
+                    "matchingColumns": [
+                        "row_number"
+                    ],
+                    "schema": [
+                        {
+                            "id": "Name",
+                            "displayName": "Name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        },
+                        {
+                            "id": "URL",
+                            "displayName": "URL",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        },
+                        {
+                            "id": "Type",
+                            "displayName": "Type",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        },
+                        {
+                            "id": "Enabled",
+                            "displayName": "Enabled",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Last_Checked",
+                            "displayName": "Last_Checked",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Reliability",
+                            "displayName": "Reliability",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "AI_Analysis",
+                            "displayName": "AI_Analysis",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "row_number",
+                            "displayName": "row_number",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "number",
+                            "canBeUsedToMatch": true,
+                            "readOnly": true,
+                            "removed": false
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false,
+                    "options": {}
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.7,
+            "position": [
+                6096,
+                2384
+            ],
+            "id": "56b0b064-eef0-44ce-b860-c89195938169",
+            "name": "Update (Empty)",
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_GOOGLE_SHEET_ID",
+                    "mode": "list",
+                    "cachedResultName": "CyberZap Database",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": 1495765821,
+                    "mode": "list",
+                    "cachedResultName": "Sources",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=1495765821"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "Enabled": "FALSE",
+                        "Last_Checked": "={{ $now }}",
+                        "AI_Analysis": "ERREUR : Lien mort ou timeout",
+                        "row_number": "={{ $('Loop Sources').item.json.row_number }}",
+                        "Reliability": "0"
+                    },
+                    "matchingColumns": [
+                        "row_number"
+                    ],
+                    "schema": [
+                        {
+                            "id": "Name",
+                            "displayName": "Name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        },
+                        {
+                            "id": "URL",
+                            "displayName": "URL",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        },
+                        {
+                            "id": "Type",
+                            "displayName": "Type",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": true
+                        },
+                        {
+                            "id": "Enabled",
+                            "displayName": "Enabled",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Last_Checked",
+                            "displayName": "Last_Checked",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Reliability",
+                            "displayName": "Reliability",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "AI_Analysis",
+                            "displayName": "AI_Analysis",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "row_number",
+                            "displayName": "row_number",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "number",
+                            "canBeUsedToMatch": true,
+                            "readOnly": true,
+                            "removed": true
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false,
+                    "options": {}
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.7,
+            "position": [
+                6096,
+                2576
+            ],
+            "id": "0ee73d8f-3567-4af9-a965-b07fc72dd707",
+            "name": "Update (Dead Link)",
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {},
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                6320,
+                2448
+            ],
+            "id": "8204700e-9149-4ca4-9fb6-aacf7a9875c7",
+            "name": "End Loop"
+        },
+        {
+            "parameters": {
+                "url": "={{ $json.URL }}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.rssFeedRead",
+            "typeVersion": 1.2,
+            "position": [
+                4032,
+                2336
+            ],
+            "id": "6d3c9d44-a32f-4d81-a939-4b27cea684ce",
+            "name": "RSS Test",
+            "retryOnFail": true,
+            "alwaysOutputData": true,
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "7c9fbff4-baf5-40ee-9d69-92d8450a1a9c",
+                            "name": "row_number",
+                            "value": "={{ $json.row_number }}",
+                            "type": "number"
+                        },
+                        {
+                            "id": "8b817ce1-3076-488a-b764-06398a60ce0f",
+                            "name": "URL",
+                            "value": "={{ $json.URL }}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "includeOtherFields": true,
+                "options": {}
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                3808,
+                2336
+            ],
+            "id": "0956230f-7426-4eb8-bda8-f3e2611f3f26",
+            "name": "Edit Fields"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "loose",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "4c99d2c2-ab67-49a3-8b96-4e018e8d6c29",
+                            "leftValue": "={{ $json.AI_Analysis }}",
+                            "rightValue": "2025-12-24T00:00:00",
+                            "operator": {
+                                "type": "string",
+                                "operation": "empty",
+                                "singleValue": true
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "looseTypeValidation": true,
+                "options": {}
+            },
+            "type": "n8n-nodes-base.filter",
+            "typeVersion": 2.3,
+            "position": [
+                3360,
+                2400
+            ],
+            "id": "e1892945-cb5f-4c0d-b833-36b5b237c57f",
+            "name": "Filter Recently Checked"
+        },
+        {
+            "parameters": {
+                "mode": "raw",
+                "jsonOutput": "{\n  \"title\": \"Invalid Title\"\n}\n",
+                "includeOtherFields": true,
+                "include": "except",
+                "excludeFields": "title",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                5056,
+                2416
+            ],
+            "id": "98644a76-ff41-4f05-b9ac-9828ed98fdae",
+            "name": "Fix Title"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "loose",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "a85b99bf-6dc7-41a1-ab51-658fb5f3559f",
+                            "leftValue": "={{ $json.title }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "string",
+                                "operation": "exists",
+                                "singleValue": true
+                            }
+                        },
+                        {
+                            "id": "3ad32307-a2b1-477a-b11e-0a81cc203fca",
+                            "leftValue": "={{ $json.title.toJsonString() }}",
+                            "rightValue": "{\"$\":{\"type\":\"text\"}}",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "looseTypeValidation": true,
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.3,
+            "position": [
+                4720,
+                2256
+            ],
+            "id": "c5de45c2-3e03-4474-8ff7-e98e7eb95901",
+            "name": "If strange title"
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_GOOGLE_SHEET_ID",
+                    "mode": "list",
+                    "cachedResultName": "CyberZap Database",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": 1191184911,
+                    "mode": "list",
+                    "cachedResultName": "History",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=1191184911"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "Timestamp": "={{ $now }}",
+                        "Lane": "Fast",
+                        "Content": "={{ $('Cyber Threat Analyzer').item.json }}"
+                    },
+                    "matchingColumns": [],
+                    "schema": [
+                        {
+                            "id": "Timestamp",
+                            "displayName": "Timestamp",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "Content",
+                            "displayName": "Content",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "Lane",
+                            "displayName": "Lane",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {
+                    "useAppend": true
+                }
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.7,
+            "position": [
+                5056,
+                -432
+            ],
+            "id": "7921ea46-8107-4301-990e-57958806ca72",
+            "name": "Save to History",
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "\nreturn {\n  json: {\n    data: items[0].json,\n    link: items[0].json.link\n  },\n};\n"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                3584,
+                -432
+            ],
+            "id": "a76f8b32-fc81-4cb1-a36d-be0daeeb0670",
+            "name": "Extract Link Backup"
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_GOOGLE_SHEET_ID",
+                    "mode": "list",
+                    "cachedResultName": "CyberZap Database",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": 1191184911,
+                    "mode": "list",
+                    "cachedResultName": "History",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=1191184911"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "Timestamp": "={{ $now }}",
+                        "Lane": "Slow",
+                        "Content": "={{ $('R\u00e9dacteur en Chef (AI)').item.json }}"
+                    },
+                    "matchingColumns": [],
+                    "schema": [
+                        {
+                            "id": "Timestamp",
+                            "displayName": "Timestamp",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "Content",
+                            "displayName": "Content",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "Lane",
+                            "displayName": "Lane",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {
+                    "useAppend": true
+                }
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.7,
+            "position": [
+                5232,
+                1264
+            ],
+            "id": "5adf057d-06df-47b5-9032-dffccb29b764",
+            "name": "Save to History1",
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_GOOGLE_SHEET_ID",
+                    "mode": "list",
+                    "cachedResultName": "CyberZap Database",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": 1191184911,
+                    "mode": "list",
+                    "cachedResultName": "History",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=1191184911"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.7,
+            "position": [
+                3584,
+                1632
+            ],
+            "id": "8984f7b2-9609-436f-8cb5-52b66128237f",
+            "name": "Read History",
+            "alwaysOutputData": true,
+            "retryOnFail": true,
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// On garde l'historique des 7 derniers jours\nconst daysAgo = 7;\nconst cutOff = new Date(new Date().getTime() - (daysAgo * 24 * 60 * 60 * 1000));\n\nreturn items.filter(item => {\n  // On suppose que la colonne s'appelle 'Timestamp' ou 'Date' dans ton Sheet History\n  const itemDate = new Date(item.json.Timestamp || item.json.Date); \n  return itemDate > cutOff;\n});"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                4000,
+                1600
+            ],
+            "id": "495ac94c-40f5-46f4-bc9e-c80c5bcf170c",
+            "name": "Filter History",
+            "alwaysOutputData": true
+        },
+        {
+            "parameters": {
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_GOOGLE_SHEET_ID",
+                    "mode": "list",
+                    "cachedResultName": "CyberZap Database",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "gid=0",
+                    "mode": "list",
+                    "cachedResultName": "Slow Lane",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+                },
+                "filtersUI": {
+                    "values": [
+                        {
+                            "lookupColumn": "Status",
+                            "lookupValue": "Pending"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.7,
+            "position": [
+                2192,
+                816
+            ],
+            "id": "3fef037b-a35d-4d63-8f19-3eb409a1e76c",
+            "name": "Read Last Articles",
+            "alwaysOutputData": true,
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// Configuration\nconst similarityThreshold = 0.5; // 60% similarity\n\n// --- FIX 1: Safe History Extraction ---\n// We use try/catch and filtering to ensure 'history' is never undefined\n// and never contains undefined items.\nlet history = [];\ntry {\n  // Note: Check if your key is 'Title' (uppercase) or 'title' (lowercase). \n  // You used 'Title' here but 'title' later in the script.\n  history = $('Read Last Articles').all()\n    .map(i => i.json.Title || i.json.title) // Try both casings just in case\n    .filter(t => typeof t === 'string' && t.length > 0); // Remove undefined/null\n} catch (error) {\n  // If the node doesn't exist or didn't run, history remains an empty array\n  console.log('No history found, proceeding with empty list.');\n}\n\nfunction getSimilarity(str1, str2) {\n  // --- FIX 2: Input Validation ---\n  // If either string is missing, return 0 similarity immediately to prevent crash\n  if (!str1 || !str2) return 0;\n\n  const track = Array(str2.length + 1).fill(null).map(() =>\n    Array(str1.length + 1).fill(null));\n  for (let i = 0; i <= str1.length; i += 1) { track[0][i] = i; }\n  for (let j = 0; j <= str2.length; j += 1) { track[j][0] = j; }\n  for (let j = 1; j <= str2.length; j += 1) {\n    for (let i = 1; i <= str1.length; i += 1) {\n      const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;\n      track[j][i] = Math.min(\n        track[j][i - 1] + 1,\n        track[j - 1][i] + 1,\n        track[j - 1][i - 1] + indicator,\n      );\n    }\n  }\n  return 1 - (track[str2.length][str1.length] / Math.max(str1.length, str2.length));\n}\n\n// Filtrage\nreturn items.filter(item => {\n  const newTitle = item.json.title;\n  \n  // Safety: If new item has no title, skip it (or keep it depending on logic)\n  if (!newTitle) return false; \n\n  // Optimization: If history is empty, nothing is a duplicate\n  if (history.length === 0) return true;\n\n  // On v\u00e9rifie si ce titre ressemble \u00e0 un titre d\u00e9j\u00e0 en base\n  const isDuplicate = history.some(oldTitle => getSimilarity(newTitle, oldTitle) > similarityThreshold);\n  \n  // Only log if it is actually a duplicate to keep logs clean\n  if (isDuplicate) console.log(`Duplicate found: ${newTitle}`);\n  \n  return !isDuplicate;\n});"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                4320,
+                480
+            ],
+            "id": "1f73c14c-dc73-4ab6-a8d1-40b4370d5823",
+            "name": "Skip similar content"
+        },
+        {
+            "parameters": {
+                "rules": {
+                    "values": [
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "strict",
+                                    "version": 3
+                                },
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $('Loop over Sources').item.json.Scraper }}",
+                                        "rightValue": "Jina",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "notEquals"
+                                        },
+                                        "id": "63882175-7ca1-42e6-8f18-0f7d743252dd"
+                                    }
+                                ],
+                                "combinator": "and"
+                            }
+                        },
+                        {
+                            "conditions": {
+                                "options": {
+                                    "caseSensitive": true,
+                                    "leftValue": "",
+                                    "typeValidation": "strict",
+                                    "version": 3
+                                },
+                                "conditions": [
+                                    {
+                                        "id": "72ec136b-08b3-4726-8f2c-7a35261b24c5",
+                                        "leftValue": "={{ $('Loop over Sources').item.json.Scraper }}",
+                                        "rightValue": "Jina",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals",
+                                            "name": "filter.operator.equals"
+                                        }
+                                    }
+                                ],
+                                "combinator": "and"
+                            }
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3.4,
+            "position": [
+                4864,
+                608
+            ],
+            "id": "713f5da6-412c-47fe-ab70-6829cda73532",
+            "name": "Switch"
+        },
+        {
+            "parameters": {
+                "url": "={{ $json.clean_url }}",
+                "options": {
+                    "redirect": {
+                        "redirect": {}
+                    }
+                }
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.3,
+            "position": [
+                5152,
+                432
+            ],
+            "id": "f6ed84f0-9d79-4a27-a6f6-ae11f6022bb4",
+            "name": "HTTP Request",
+            "retryOnFail": true,
+            "waitBetweenTries": 5000,
+            "maxTries": 5,
+            "alwaysOutputData": true,
+            "onError": "continueErrorOutput"
+        },
+        {
+            "parameters": {
+                "html": "={{ $json.data }}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.markdown",
+            "typeVersion": 1,
+            "position": [
+                5376,
+                432
+            ],
+            "id": "cb1a05b1-4fb0-46af-82ab-c03a4f2c43ae",
+            "name": "Markdown",
+            "alwaysOutputData": true,
+            "retryOnFail": false,
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+            "typeVersion": 1,
+            "position": [
+                4240,
+                128
+            ],
+            "id": "5e0043bf-9095-438b-a760-c62c99b96e41",
+            "name": "Gemini",
+            "credentials": {
+                "googlePalmApi": {
+                    "id": "YOUR_GOOGLE_PALM_CREDENTIAL_ID",
+                    "name": "Google Gemini(PaLM) Api account"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Extract Article Content": {
+            "main": [
+                [
+                    {
+                        "node": "HTML to Markdown",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTML to Markdown": {
+            "main": [
+                [
+                    {
+                        "node": "Cyber Threat Analyzer",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Cyber Threat Analyzer": {
+            "main": [
+                [
+                    {
+                        "node": "Is Critical Threat?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Threat JSON Parser": {
+            "ai_outputParser": [
+                [
+                    {
+                        "node": "Cyber Threat Analyzer",
+                        "type": "ai_outputParser",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Is Critical Threat?": {
+            "main": [
+                [
+                    {
+                        "node": "Publish to Channel (Waha)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Publish to Channel (Waha)": {
+            "main": [
+                [
+                    {
+                        "node": "Save to History",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Channels List": {
+            "main": [
+                []
+            ]
+        },
+        "Fetch CISA JSON": {
+            "main": [
+                [
+                    {
+                        "node": "Split Vulnerabilities",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Split Vulnerabilities": {
+            "main": [
+                [
+                    {
+                        "node": "Filter Results Time Wise",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Every 15 minutes": {
+            "main": [
+                [
+                    {
+                        "node": "Fetch CISA JSON",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Remove Duplicates": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Link Backup",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "RSS CERT-FR": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Link",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "RSS Zero-Day Initiative": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Link",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "RSS Ransomware-Live": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Link",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filter Results Time Wise": {
+            "main": [
+                [
+                    {
+                        "node": "Remove Duplicates",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Reformat Data": {
+            "main": [
+                [
+                    {
+                        "node": "Cyber Threat Analyzer",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Link": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Article Content",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Sources": {
+            "main": [
+                [
+                    {
+                        "node": "Loop over Sources",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Loop over Sources": {
+            "main": [
+                [],
+                [
+                    {
+                        "node": "RSS Read",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filter Last 24h": {
+            "main": [
+                [
+                    {
+                        "node": "If articles exist",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Filter & Summarizer": {
+            "main": [
+                [
+                    {
+                        "node": "Is Relevant?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "JSON Parser": {
+            "ai_outputParser": [
+                [
+                    {
+                        "node": "AI Filter & Summarizer",
+                        "type": "ai_outputParser",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Is Relevant?": {
+            "main": [
+                [
+                    {
+                        "node": "Save to DB",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "End of Loop",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Save to DB": {
+            "main": [
+                [
+                    {
+                        "node": "End of Loop",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "End of Loop": {
+            "main": [
+                [
+                    {
+                        "node": "Loop over Sources",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "RSS Read": {
+            "main": [
+                [
+                    {
+                        "node": "Remove Duplicates Articles already fetched",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Harvester Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Read Last Articles",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If articles exist": {
+            "main": [
+                [
+                    {
+                        "node": "Skip similar content",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "End of Loop",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Normalize URL": {
+            "main": [
+                [
+                    {
+                        "node": "Switch",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Jina AI Scraper": {
+            "main": [
+                [
+                    {
+                        "node": "AI Filter & Summarizer",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "End of Loop",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Remove Duplicates Articles already fetched": {
+            "main": [
+                [
+                    {
+                        "node": "If articles exist (Backup)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If articles exist (Backup)": {
+            "main": [
+                [
+                    {
+                        "node": "Filter Last 24h",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "End of Loop",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Every Morning at 8am": {
+            "main": [
+                [
+                    {
+                        "node": "Read History",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Read Pending Articles": {
+            "main": [
+                [
+                    {
+                        "node": "Has Content?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Has Content?": {
+            "main": [
+                [
+                    {
+                        "node": "Prepare Context",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Prepare Context": {
+            "main": [
+                [
+                    {
+                        "node": "R\u00e9dacteur en Chef (AI)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "R\u00e9dacteur en Chef (AI)": {
+            "main": [
+                [
+                    {
+                        "node": "Send WhatsApp",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send WhatsApp": {
+            "main": [
+                [
+                    {
+                        "node": "Get Original Rows",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Save to History1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Original Rows": {
+            "main": [
+                [
+                    {
+                        "node": "Mark as Sent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Start Validation": {
+            "main": [
+                [
+                    {
+                        "node": "Read All Sources",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Read All Sources": {
+            "main": [
+                [
+                    {
+                        "node": "Filter Recently Checked",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Loop Sources": {
+            "main": [
+                [],
+                [
+                    {
+                        "node": "Edit Fields",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Is Alive?": {
+            "main": [
+                [
+                    {
+                        "node": "If strange title",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Update (Dead Link)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Prepare Sample": {
+            "main": [
+                [
+                    {
+                        "node": "Has Articles?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Has Articles?": {
+            "main": [
+                [
+                    {
+                        "node": "AI Auditor",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Update (Empty)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Auditor": {
+            "main": [
+                [
+                    {
+                        "node": "Update (Valid)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Audit Parser": {
+            "ai_outputParser": [
+                [
+                    {
+                        "node": "AI Auditor",
+                        "type": "ai_outputParser",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Update (Valid)": {
+            "main": [
+                [
+                    {
+                        "node": "End Loop",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Update (Empty)": {
+            "main": [
+                [
+                    {
+                        "node": "End Loop",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Update (Dead Link)": {
+            "main": [
+                [
+                    {
+                        "node": "End Loop",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "End Loop": {
+            "main": [
+                [
+                    {
+                        "node": "Loop Sources",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "RSS Test": {
+            "main": [
+                [
+                    {
+                        "node": "Is Alive?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Edit Fields": {
+            "main": [
+                [
+                    {
+                        "node": "RSS Test",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filter Recently Checked": {
+            "main": [
+                [
+                    {
+                        "node": "Loop Sources",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Fix Title": {
+            "main": [
+                [
+                    {
+                        "node": "Prepare Sample",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If strange title": {
+            "main": [
+                [
+                    {
+                        "node": "Fix Title",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Prepare Sample",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Link Backup": {
+            "main": [
+                [
+                    {
+                        "node": "Reformat Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Read History": {
+            "main": [
+                [
+                    {
+                        "node": "Filter History",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filter History": {
+            "main": [
+                [
+                    {
+                        "node": "Read Pending Articles",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Read Last Articles": {
+            "main": [
+                [
+                    {
+                        "node": "Get Sources",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Skip similar content": {
+            "main": [
+                [
+                    {
+                        "node": "Normalize URL",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Switch": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP Request",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Jina AI Scraper",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP Request": {
+            "main": [
+                [
+                    {
+                        "node": "Markdown",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Markdown": {
+            "main": [
+                [
+                    {
+                        "node": "AI Filter & Summarizer",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Gemini": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "Cyber Threat Analyzer",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    },
+                    {
+                        "node": "Threat JSON Parser",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    },
+                    {
+                        "node": "AI Filter & Summarizer",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    },
+                    {
+                        "node": "JSON Parser",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    },
+                    {
+                        "node": "R\u00e9dacteur en Chef (AI)",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    },
+                    {
+                        "node": "AI Auditor",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    },
+                    {
+                        "node": "Audit Parser",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {},
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "44135e7e5ceddb6603d560ed4a207fc401c5b253ee94c730ceda659db577ef81"
+    }
+}
