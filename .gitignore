@@ -1,1 +1,26 @@
+# Environment files (contain secrets)
+.env
+
+# Private workflow with credentials
 private_workflow.json
+
+# n8n local data
+.n8n/
+
+# Docker volumes (if mounted locally)
+postgres_data/
+n8n_data/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
