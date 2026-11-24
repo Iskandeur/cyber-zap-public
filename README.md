@@ -107,7 +107,7 @@ flowchart TB
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/cyber-zap-public.git
+   git clone https://github.com/Iskandeur/cyber-zap-public.git
    cd cyber-zap-public
    ```
 
@@ -125,11 +125,11 @@ flowchart TB
 
 4. **Access n8n**
    
-   Open http://localhost:5678 in your browser
-   
-   Default credentials:
-   - Username: `admin`
-   - Password: `changeme`
+   Open http://localhost:5678 in your browser and create the owner account
+   (email + password). n8n 1.0 removed basic auth, so there is no default login:
+   do this step right away, since whoever reaches the editor first becomes its owner.
+   The port is bound to `127.0.0.1` for that reason; on a server, reach it through an
+   SSH tunnel or a TLS reverse proxy before setting `N8N_BIND=0.0.0.0`.
 
 5. **Import the workflow**
    - In n8n, go to **Workflows** → **Import from File**
@@ -144,8 +144,7 @@ flowchart TB
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `N8N_BASIC_AUTH_USER` | n8n admin username | `admin` |
-| `N8N_BASIC_AUTH_PASSWORD` | n8n admin password | `changeme` |
+| `N8N_BIND` | Interface the n8n editor listens on | `127.0.0.1` |
 | `POSTGRES_PASSWORD` | Database password | `n8n_password` |
 | `TIMEZONE` | Timezone for scheduling | `Europe/Paris` |
 
